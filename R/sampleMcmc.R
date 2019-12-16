@@ -51,8 +51,9 @@
 #' @seealso \code{\link{Hmsc}}
 #'
 #' @examples
-#' ## Record 100 posterior samples from a Hmsc object
-#' m = sampleMcmc(TD$m, samples=100)
+#' ## samples=20 is ridiculously low, but runs fast: see the second
+#' ## example for more proper usage
+#' m = sampleMcmc(TD$m, samples=20)
 #'
 #' \dontrun{
 #' ## Record 1000 posterior samples while skipping 1 MCMC step between samples
@@ -83,7 +84,7 @@ sampleMcmc = function(hM, samples, transient=0, thin=1, initPar=NULL,
    #X used in computations is modified from X1 by variable selection and dimension reduction.
    X1 = hM$XScaled
    if (hM$ncsel>0){
-      if(class(X1)=="matrix"){
+      if(is.matrix(X1)){
          X2=X1
          X1=list()
          for (j in 1:hM$ns){
@@ -195,7 +196,7 @@ sampleMcmc = function(hM, samples, transient=0, thin=1, initPar=NULL,
       X = X1A
       if(hM$ncRRR>0){
          XB=hM$XRRRScaled%*%t(wRRR)
-         if(class(X)=="matrix"){
+         if(is.matrix(X)){
             X=cbind(X,XB)
          } else {
             for (j in 1:hM$ns){

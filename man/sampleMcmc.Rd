@@ -4,10 +4,21 @@
 \alias{sampleMcmc}
 \title{sampleMCMC}
 \usage{
-sampleMcmc(hM, samples, transient = 0, thin = 1, initPar = NULL,
-  verbose = samples * thin/100, adaptNf = rep(transient, hM$nr),
-  nChains = 1, nParallel = 1, dataParList = NULL, updater = list(),
-  fromPrior = FALSE, alignPost = TRUE)
+sampleMcmc(
+  hM,
+  samples,
+  transient = 0,
+  thin = 1,
+  initPar = NULL,
+  verbose = samples * thin/100,
+  adaptNf = rep(transient, hM$nr),
+  nChains = 1,
+  nParallel = 1,
+  dataParList = NULL,
+  updater = list(),
+  fromPrior = FALSE,
+  alignPost = TRUE
+)
 }
 \arguments{
 \item{hM}{a fitted \code{Hmsc} model object}
@@ -73,8 +84,9 @@ The exact number of samples to be recorded in order to get a proper estimate of 
   results.
 }
 \examples{
-## Record 100 posterior samples from a Hmsc object
-m = sampleMcmc(TD$m, samples=100)
+## samples=20 is ridiculously low, but runs fast: see the second
+## example for more proper usage
+m = sampleMcmc(TD$m, samples=20)
 
 \dontrun{
 ## Record 1000 posterior samples while skipping 1 MCMC step between samples

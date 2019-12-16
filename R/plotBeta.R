@@ -36,7 +36,7 @@
 #' @param smallplot passed to \code{\link{image.plot}}
 #' @param bigplot passed to \code{\link{image.plot}}
 #' @param newplot set to  false if the plot will be part of multi-panel plot initialized with par(mfrow)
-
+#'
 #'
 #'
 #' @examples
@@ -50,20 +50,26 @@
 #'
 #' @importFrom graphics par plot plot.new axis text
 #' @importFrom grDevices colorRampPalette
-#' @importFrom ape keep.tip
+#' @importFrom ape keep.tip read.tree write.tree
 #' @importFrom fields image.plot
-#' @importFrom phytools untangle
 #' @export
 
 
 plotBeta = function(hM, post, param = "Support", plotTree = FALSE,
-                    SpeciesOrder = "Original", SpVector = NULL, covOrder="Original",
+                    SpeciesOrder = "Original", SpVector = NULL,
+                    covOrder="Original",
                     covVector=NULL, spNamesNumbers = c(TRUE, TRUE),
                     covNamesNumbers = c(TRUE, TRUE),
                     supportLevel = 0.9, split = 0.3, cex = c(0.7,0.7,0.8),
                     colors = colorRampPalette(c("blue","white","red")), colorLevels = NULL,
                     mar=NULL, marTree=c(6,0,2,0),mgp=c(3,2,0),
-                    smallplot=NULL, bigplot=NULL,newplot=TRUE){
+                    smallplot=NULL, bigplot=NULL,newplot=TRUE)
+{
+    ## Check that text arguments are acceptable, and expand to full
+    ## names if abbreviated.
+    param <- match.arg(param, c("Mean", "Support", "Sign"))
+    SpeciesOrder <- match.arg(SpeciesOrder, c("Original", "Vector", "Tree"))
+    covOrder <- match.arg(covOrder, c("Original", "Vector"))
 
    if(is.null(colorLevels)){
       if(param=="Sign"){
@@ -79,9 +85,17 @@ plotBeta = function(hM, post, param = "Support", plotTree = FALSE,
       }
    }
 
-   if(plotTree){
+   if(plotTree || SpeciesOrder == "Tree"){
+      untangle<-function(tree){
+         if(!inherits(tree,"phylo")) stop("tree should be an object of class \"phylo\".")
+         obj<-attributes(tree)
+         tree <- ape::read.tree(text=ape::write.tree(tree))
+         ii <- !names(obj) %in% names(attributes(tree))
+         attributes(tree)<-c(attributes(tree),obj[ii])
+         tree
+       }
       tree = keep.tip(hM$phyloTree,hM$spNames)
-      tree = untangle(tree,"read.tree")
+      tree = untangle(tree)
    }
 
    spNames = character(hM$ns)
@@ -110,14 +124,17 @@ plotBeta = function(hM, post, param = "Support", plotTree = FALSE,
       }
    }
 
-   if(plotTree){order=tree$tip.label}
-   if(!plotTree & SpeciesOrder=="Vector"){order=SpVector}
-   if(!plotTree & SpeciesOrder=="Original"){order=rev(1:ncol(hM$Y))}
-   if(!plotTree & SpeciesOrder=="Tree"){order=match(tree$tip.label,colnames(hM$Y))}
-   if(!plotTree & SpeciesOrder=="Tree"){order=match(tree$tip.label,hM$spNames)}
-
+    if(plotTree){
+        order=tree$tip.label
+    } else {
+        order <-
+            switch(SpeciesOrder,
+                   "Vector" = SpVector,
+                   "Original" = rev(1:ncol(hM$Y)),
+                   "Tree" = match(tree$tip.label,colnames(hM$Y)))
+    }
    if(covOrder=="Vector"){covorder=covVector}
-   if(covOrder=="Original"){covorder=1:hM$nc}
+   else if(covOrder=="Original"){covorder=1:hM$nc}
 
    mbeta=post$mean
    betaP=post$support
@@ -127,17 +144,15 @@ plotBeta = function(hM, post, param = "Support", plotTree = FALSE,
       toPlot = toPlot * ((betaP>supportLevel) + (betaP<(1-supportLevel))>0)
       betaMat = matrix(toPlot, nrow=hM$nc, ncol=ncol(hM$Y))
    }
-   if(param=="Mean"){
+   else if(param=="Mean"){
       toPlot = mbeta
       toPlot = toPlot * ((betaP>supportLevel) + (betaP<(1-supportLevel))>0)
       betaMat = matrix(toPlot, nrow=hM$nc, ncol=ncol(hM$Y))
    }
-   else{
-      if(param=="Support"){
-         toPlot = 2*betaP-1
-         toPlot = toPlot * ((betaP>supportLevel) + (betaP<(1-supportLevel))>0)
-         betaMat = matrix(toPlot, nrow=hM$nc, ncol=ncol(hM$Y))
-      }
+   else{ # param == "Support"
+       toPlot = 2*betaP-1
+       toPlot = toPlot * ((betaP>supportLevel) + (betaP<(1-supportLevel))>0)
+       betaMat = matrix(toPlot, nrow=hM$nc, ncol=ncol(hM$Y))
    }
 
    rownames(betaMat) = covNames

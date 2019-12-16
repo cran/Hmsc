@@ -10,7 +10,7 @@
 #' # Align the posterior for a previously fitted HMSC model
 #' m = alignPosterior(TD$m)
 #'
-#' @importFrom stats cor
+#' @importFrom stats cor sd
 #' @importFrom abind abind
 #'
 #' @export
@@ -38,11 +38,15 @@ alignPosterior=function(hM){
          s = NULL
          for(k in 1:nf){
             if(hM$ns > 1 || hM$rL[[r]]$xDim > 1){
-               s = rbind(s,sign(abind(lapply(LambdaPostList, function(a) cor(as.vector(LambdaPostMean[k,]),as.vector(a[k,]))))))
+               s = rbind(s,sign(abind(lapply(LambdaPostList, function(a){
+                     if(sd(as.vector(LambdaPostMean[k,]))>0 && sd(as.vector(a[k,]))>0){
+                        return(cor(as.vector(LambdaPostMean[k,]),as.vector(a[k,])))
+                     } else
+                        return(0)
+                  }))))
             } else
                s = rbind(s,abind(lapply(LambdaPostList, function(a) sign(LambdaPostMean[k,])*sign(a[k,]))))
          }
-         s[is.na(s)] = 0
          for(j in 1:length(cpL)){
             for(k in 1:nf){
                if(s[k,j]<0){
@@ -55,11 +59,12 @@ alignPosterior=function(hM){
                LambdaAddDim[1] = nfMax-nf
                cpL[[j]]$Lambda[[r]] = abind(cpL[[j]]$Lambda[[r]], array(0,LambdaAddDim), along=1)
                cpL[[j]]$Psi[[r]] = abind(cpL[[j]]$Psi[[r]], array(0,LambdaAddDim), along=1)
-               DeltaAddDim = LambdaAddDim[-2]
+               DeltaAddDim = dim(cpL[[j]]$Delta[[r]])
+               DeltaAddDim[1] = nfMax-nf
                cpL[[j]]$Delta[[r]] = abind(cpL[[j]]$Delta[[r]], array(1,DeltaAddDim), along=1)
                cpL[[j]]$Eta[[r]] = abind(cpL[[j]]$Eta[[r]], matrix(0,nrow(cpL[[j]]$Eta[[r]]),nfMax-nf), along=2)
                if(hM$rL[[r]]$sDim > 0)
-                  cpL[[j]]$Alpha[[r]] = abind(cpL[[j]]$Alpha[[r]], rep(0,nfMax-nf), along=1)
+                  cpL[[j]]$Alpha[[r]] = abind(cpL[[j]]$Alpha[[r]], rep(1,nfMax-nf), along=1)
             }
          }
          hM$postList[[cInd]] = cpL
