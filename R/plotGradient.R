@@ -45,7 +45,6 @@
 #' Gradient = constructGradient(TD$m, focalVariable="x1")
 #' predY = predict(TD$m, Gradient=Gradient)
 #' plotGradient(TD$m, Gradient, pred=predY, measure="Y", index = 2, showData = TRUE, jigger = 0.05)
-#'
 #' # Plot modelled species richness over the gradient of environmental variable x1
 #' Gradient = constructGradient(TD$m, focalVariable="x1")
 #' predY = predict(TD$m, Gradient=Gradient)
@@ -164,14 +163,21 @@ plotGradient=function (hM, Gradient, predY, measure, xlabel = NULL, ylabel = NUL
          }
          pY = tmp[,index]
       }
-      pX = hM$XData[,XDatacol]
 
-      lo1 = min(lo1,min(pY,na.rm = TRUE))
+      switch(class(hM$X)[1L],
+             matrix = {
+                pX = hM$XData[,XDatacol]
+             },
+             list = {
+                pX = hM$XData[[1]][,XDatacol]
+             }
+      )
+
       hi1 = max(hi1,max(pY,na.rm = TRUE))
    }
 
    if (is.factor(xx)) {
-      toPlot = data.frame(xx, me, lo, hi)
+      toPlot = data.frame(xx, me, lo, hi, stringsAsFactors = TRUE)
 #      plot.new()
       pl = ggplot(toPlot, aes_string(x = xx, y = me)) + geom_bar(position = position_dodge(),
                                                                               stat = "identity") + xlab(xlabel) + ylab(ylabel) +
@@ -182,7 +188,7 @@ plotGradient=function (hM, Gradient, predY, measure, xlabel = NULL, ylabel = NUL
             pX = as.numeric(pX)
             pX = pX + runif(n =length(pY),min = -jigger, max = jigger)
          }
-         dataToPlot = data.frame(pX = pX, pY = pY)
+         dataToPlot = data.frame(pX = pX, pY = pY, stringsAsFactors = TRUE)
          pl = pl + geom_point(data = dataToPlot, aes_string(x = pX, y = pY), size = pointsize)
       }
       #plot(pl)

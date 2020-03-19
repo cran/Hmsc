@@ -1,7 +1,7 @@
 Package: Hmsc
 Title: Hierarchical Model of Species Communities
 Type: Package
-Version: 3.0-4
+Version: 3.0-6
 Authors@R: c(person(given = "Gleb", family="Tikhonov", role="aut"),
    person(given="Otso", family="Ovaskainen",
       email="otso.ovaskainen@helsinki.fi",
@@ -19,15 +19,15 @@ URL: https://www.helsinki.fi/en/researchgroups/statistical-ecology/hmsc
 BugReports: https://github.com/hmsc-r/HMSC/issues
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.0.1
+RoxygenNote: 7.0.2
 Suggests: R.rsp, testthat, corrplot
 VignetteBuilder: R.rsp
 Depends: R (>= 3.0.2), coda
 Imports: abind, ape, BayesLogit, fields, FNN, ggplot2, MASS, Matrix,
-        MCMCpack, methods, mvtnorm, nnet, parallel, pdist, pROC,
+        MCMCpack, methods, mvtnorm, nnet, rlang, parallel, pdist, pROC,
         statmod, truncnorm
 NeedsCompilation: no
-Packaged: 2019-12-16 10:57:52 UTC; jarioksa
+Packaged: 2020-03-19 10:41:44 UTC; jarioksa
 Author: Gleb Tikhonov [aut],
   Otso Ovaskainen [aut, cre] (<https://orcid.org/0000-0001-9750-4421>),
   Jari Oksanen [aut],
@@ -36,4 +36,4 @@ Author: Gleb Tikhonov [aut],
   Tad Dallas [aut]
 Maintainer: Otso Ovaskainen <otso.ovaskainen@helsinki.fi>
 Repository: CRAN
-Date/Publication: 2019-12-16 12:50:03 UTC
+Date/Publication: 2020-03-19 11:30:02 UTC

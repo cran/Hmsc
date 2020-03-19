@@ -128,7 +128,7 @@ test_that("updateInvSigma is correct",{
    iSigma = updateInvSigma(Y=m$Y,Z=parList$Z,Beta=parList$Beta,iSigma=sqrt(parList$sigma),
                            Eta=parList$Eta,Lambda=parList$Lambda, distr=m$distr,X=m$X,Pi=m$Pi,
                            dfPi=m$dfPi,rL=m$rL, aSigma=m$aSigma,bSigma=m$bSigma)
-   expect_equal(round(iSigma),c(0,1,0,0))
+   expect_equal(round(iSigma),c(0,1,0,7)) # 1 and 4 are arbitrary & depend on set.seed()
 })
 
 test_that("updateNf is correct",{
@@ -164,7 +164,7 @@ context('Test sampleMCMC')
 test_that("sampleMCMC returns m object of right size",{
    set.seed(200)
    m = sampleMcmc(TD$m,samples=1)
-   expect_equal(length(m),72)
+   expect_equal(length(m),73)
    expect_equal(length(m$postList[[1]][[1]]),13)
 })
 

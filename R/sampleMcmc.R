@@ -7,7 +7,7 @@
 #' @param transient the number of MCMC steps that are executed before starting recording posterior samples
 #' @param thin the number of MCMC steps between each recording of samples from the posterior
 #' @param initPar a named list of parameter values used for initiation of MCMC states
-#' @param verbose the interval between MCMC steps printed to the console
+#' @param verbose the interval between MCMC steps printed to the console (default is an interval that prints ca. 50 reports)
 #' @param adaptNf a vector of length \eqn{n_r} with number of MCMC steps at which the adaptation of the
 #' number of latent factors is conducted
 #' @param nChains number of independent MCMC chains to be run
@@ -51,9 +51,9 @@
 #' @seealso \code{\link{Hmsc}}
 #'
 #' @examples
-#' ## samples=20 is ridiculously low, but runs fast: see the second
-#' ## example for more proper usage
-#' m = sampleMcmc(TD$m, samples=20)
+#' ## you need 1000 or more samples, but that will take too long
+#' ## in an example
+#' m = sampleMcmc(TD$m, samples=10)
 #'
 #' \dontrun{
 #' ## Record 1000 posterior samples while skipping 1 MCMC step between samples
@@ -61,15 +61,22 @@
 #' m = sampleMcmc(TD$m, samples=1000, transient=500, thin=2, nChains=2, nParallel=1)
 #' }
 #'
-## J.O. thinks that these functions should rather be imported from
-## parallel which is a standard package supported by the R Core.
 #' @importFrom parallel makeCluster clusterExport clusterEvalQ clusterApplyLB stopCluster
 #' @export
 
-sampleMcmc = function(hM, samples, transient=0, thin=1, initPar=NULL,
-                      verbose=samples*thin/100, adaptNf=rep(transient,hM$nr),
-                      nChains=1, nParallel=1, dataParList=NULL, updater=list(),
-                      fromPrior = FALSE, alignPost = TRUE){
+sampleMcmc =
+    function(hM, samples, transient=0, thin=1, initPar=NULL,
+             verbose, adaptNf=rep(transient,hM$nr),
+             nChains=1, nParallel=1, dataParList=NULL, updater=list(),
+             fromPrior = FALSE, alignPost = TRUE)
+{
+   if (missing(verbose)) {
+       if (samples*thin <= 50) # report every sampling
+           verbose <- 1
+       else                    # report ~50 steps of sampling
+           verbose <- samples*thin/50
+   }
+   verbose <- as.integer(verbose) # truncate to integer
    if(fromPrior)
       nParallel = 1
    force(adaptNf)
@@ -128,34 +135,34 @@ sampleMcmc = function(hM, samples, transient=0, thin=1, initPar=NULL,
    if(!identical(updater$Gamma2, FALSE) && any(abs(mGamma) > EPS)){
       updater$Gamma2 = FALSE
       if(updaterWarningFlag)
-         print("Setting updater$Gamma2=FALSE due to non-zero mGamma")
+         message("Setting updater$Gamma2=FALSE due to non-zero mGamma")
    }
    if(!identical(updater$Gamma2, FALSE) && any(abs(iUGamma - kronecker(iUGamma[1:hM$nc,1:hM$nc], diag(hM$nt))) > EPS)){
       updater$Gamma2 = FALSE
       if(updaterWarningFlag)
-         print("Setting updater$Gamma2=FALSE due to non-kronecker structure of UGamma matrix")
+         message("Setting updater$Gamma2=FALSE due to non-kronecker structure of UGamma matrix")
    }
    if(!identical(updater$Gamma2, FALSE) && (!is.null(C))){
       updater$Gamma2 = FALSE
       if(updaterWarningFlag)
-         print("Setting updater$Gamma2=FALSE due to specified phylogeny matrix")
+         message("Setting updater$Gamma2=FALSE due to specified phylogeny matrix")
    }
    # updater$GammaEta
    if(!identical(updater$GammaEta, FALSE) && any(abs(mGamma) > EPS)){
       updater$GammaEta = FALSE
       if(updaterWarningFlag)
-         print("Setting updater$GammaEta=FALSE due to non-zero mGamma")
+         message("Setting updater$GammaEta=FALSE due to non-zero mGamma")
    }
    if(!identical(updater$GammaEta, FALSE) && hM$nr==0){
       updater$GammaEta = FALSE
       if(updaterWarningFlag)
-         print("Setting updater$GammaEta=FALSE due to absence of random effects included to the model")
+         message("Setting updater$GammaEta=FALSE due to absence of random effects included to the model")
    }
 
 
    sampleChain = function(chain){
       if(nChains>1)
-         print(sprintf("Computing chain %d", chain))
+         cat(sprintf("Computing chain %d\n", chain))
       set.seed(initSeed[chain])
       parList = computeInitialParameters(hM,initPar)
 
@@ -208,12 +215,12 @@ sampleMcmc = function(hM, samples, transient=0, thin=1, initPar=NULL,
       if(!identical(updater$Gamma2, FALSE) && (!is.matrix(X))){
          updater$Gamma2 = FALSE
          if(updaterWarningFlag)
-            print("Setting updater$Gamma2=FALSE due to X is not a matrix")
+            message("Setting updater$Gamma2=FALSE due to X is not a matrix")
       }
       if(!identical(updater$GammaEta, FALSE) && (!is.matrix(X))){
          updater$GammaEta = FALSE
          if(updaterWarningFlag)
-            print("Setting updater$GammaEta=FALSE due to X is not a matrix")
+            message("Setting updater$GammaEta=FALSE due to X is not a matrix")
       }
 
       postList = vector("list", samples)
@@ -321,7 +328,7 @@ sampleMcmc = function(hM, samples, transient=0, thin=1, initPar=NULL,
             } else{
                samplingStatusString = "transient"
             }
-            print(sprintf("Chain %d, iteration %d of %d, (%s)", chain, iter, transient+samples*thin, samplingStatusString) )
+            cat(sprintf("Chain %d, iteration %d of %d, (%s)\n", chain, iter, transient+samples*thin, samplingStatusString) )
          }
       }
       return(postList)

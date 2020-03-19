@@ -13,8 +13,9 @@
 #' @param initPar a named list of parameter values used for initialization of MCMC states
 #' @param nParallel number of parallel processes by which the chains are executed
 #' @param nChains number of independent MCMC chains to be run
-#' @param updater a named list, specifying which conditional updaters should be ommitted
+#' @param updater a named list, specifying which conditional updaters should be omitted
 #' @param verbose the interval between MCMC steps printed to the console
+#' @param alignPost boolean flag indicating whether the posterior of each chains should be aligned
 #'
 #' @return an array of model predictions, made for each posterior sample
 #'
@@ -42,16 +43,18 @@
 #' # Compute conditional predictions for a previously fitted HMSC model using 2 folds
 #' partition = createPartition(TD$m, nfolds = 2)
 #' predsCV2 = computePredictedValues(TD$m, partition = partition,
-#' partition.sp = 1:m$ns, mcmcStep = 100)
+#' partition.sp = 1:TD$m$ns, mcmcStep = 100)
 #' }
 #'
 #' @importFrom stats predict
 #' @importFrom abind abind
+#' @importFrom rlang duplicate
 #' @export
 
 computePredictedValues = function(hM, partition=NULL, partition.sp=NULL, start=1, thin=1,
                                   Yc=NULL, mcmcStep=1, expected=TRUE, initPar=NULL,
-                                  nParallel=1, nChains = length(hM$postList), updater=list(), verbose = hM$verbose){
+                                  nParallel=1, nChains = length(hM$postList), updater=list(),
+                                  verbose = hM$verbose, alignPost = TRUE){
    if(is.null(partition)){
       postList = poolMcmcChains(hM$postList, start=start, thin=thin)
       pred = predict(hM, post=postList, Yc=Yc, mcmcStep=1, expected=expected)
@@ -64,10 +67,12 @@ computePredictedValues = function(hM, partition=NULL, partition.sp=NULL, start=1
       postN = Reduce(sum, lapply(hM$postList, length))
       predArray = array(NA,c(hM$ny,hM$ns,postN))
       for (k in 1:nfolds){
-         print(sprintf("Cross-validation, fold %d out of %d", k, nfolds))
+         cat(sprintf("Cross-validation, fold %d out of %d\n", k, nfolds))
          train = (partition!=k)
          val = (partition==k)
-         dfPi = as.data.frame(matrix(NA,sum(train),hM$nr))
+         ## stringsAsFactors probably not needed below
+         dfPi = as.data.frame(matrix(NA,sum(train),hM$nr),
+                              stringsAsFactors = TRUE)
          colnames(dfPi) = hM$rLNames
          for(r in seq_len(hM$nr)){
             dfPi[,r] = factor(hM$dfPi[train,r])
@@ -89,7 +94,9 @@ computePredictedValues = function(hM, partition=NULL, partition.sp=NULL, start=1
             XRRRTrain=NULL
             XRRRVal=NULL
          }
-         hM1 = Hmsc(Y=hM$Y[train,,drop=FALSE], X=XTrain, XRRR=XRRRTrain, ncRRR = hM$ncRRR, XSelect = hM$XSelect, distr=hM$distr, studyDesign=dfPi, Tr=hM$Tr, C=hM$C, ranLevels=hM$rL)
+         hM1 = Hmsc(Y=hM$Y[train,,drop=FALSE], X=XTrain,
+                    XRRR=XRRRTrain, ncRRR = hM$ncRRR, XSelect = hM$XSelect,
+                    distr=hM$distr, studyDesign=dfPi, Tr=hM$Tr, C=hM$C, ranLevels=hM$rL)
          setPriors(hM1, V0=hM$V0, f0=hM$f0, mGamma=hM$mGamma, UGamma=hM$UGamma, aSigma=hM$aSigma, bSigma=hM$bSigma,
                    nu=hM$nu, a1=hM$a1, b1=hM$b1, a2=hM$a2, b2=hM$b2, rhopw=hM$rhowp)
          hM1$YScalePar = hM$YScalePar
@@ -115,27 +122,44 @@ computePredictedValues = function(hM, partition=NULL, partition.sp=NULL, start=1
          hM1$TrScalePar = hM$TrScalePar
          hM1$TrScaled = (hM1$Tr - matrix(hM1$TrScalePar[1,],hM1$ns,hM1$nt,byrow=TRUE)) / matrix(hM1$TrScalePar[2,],hM1$ns,hM1$nt,byrow=TRUE)
          hM1 = sampleMcmc(hM1, samples=hM$samples, thin=hM$thin, transient=hM$transient, adaptNf=hM$adaptNf,
-                          initPar=initPar, nChains=nChains, nParallel=nParallel, updater = updater, verbose = verbose)
+                          initPar=initPar, nChains=nChains, nParallel=nParallel, updater = updater,
+                          verbose = verbose, alignPost=alignPost)
          postList = poolMcmcChains(hM1$postList, start=start)
-         dfPi = as.data.frame(matrix(NA,sum(val),hM$nr))
+         ## stringsAsFactors probably not needed below
+         dfPi = as.data.frame(matrix(NA,sum(val),hM$nr), stringsAsFactors = TRUE)
          colnames(dfPi) = hM$rLNames
-         for (r in seq_len(hM$nr)){
+         for(r in seq_len(hM$nr)){
             dfPi[,r] = factor(hM$dfPi[val,r])
          }
          if(is.null(partition.sp)){
             pred1 = predict(hM1, post=postList, X=XVal, XRRR=XRRRVal, studyDesign=dfPi, Yc=Yc[val,,drop=FALSE], mcmcStep=mcmcStep, expected=expected)
             pred1Array = abind(pred1,along=3)
          } else {
-            pred1Array =  array(dim=c(sum(val),hM$ns,postN))
+            hM2 = duplicate(hM)
+            if(is.null(hM2$rLPar)) {
+               hM2$rLPar = computeDataParameters(hM2)$rLPar
+            }
+            postList2 = duplicate(postList)
+            for(r in seq_len(hM$nr)){
+               postEta = lapply(postList, function(c) c$Eta[[r]])
+               postAlpha = lapply(postList, function(c) c$Alpha[[r]])
+               predPostEta = predictLatentFactor(unitsPred=levels(hM2$dfPi[,r]),units=levels(hM1$dfPi[,r]),
+                                                      postEta=postEta,postAlpha=postAlpha,rL=hM$rL[[r]])
+               for(i in seq_len(length(postList))){
+                  postList2[[i]]$Eta[[r]] = predPostEta[[i]]
+               }
+            }
+
+            pred1Array = array(dim=c(sum(val),hM$ns,postN))
             nfolds.sp = length(unique(partition.sp))
             for (i in 1:nfolds.sp){
                train.sp = (partition.sp!=i)
                val.sp = (partition.sp==i)
-               Yc = matrix(NA,nrow=sum(val), ncol=hM$ns)
-               Yc[,train.sp] = hM$Y[val,train.sp,drop=FALSE]
-               pred2 = predict(hM1, post=postList, X=XVal, XRRR=XRRRVal,studyDesign=dfPi, Yc=Yc, mcmcStep=mcmcStep, expected=expected)
+               YcFull = hM$Y
+               YcFull[val,val.sp] = NA
+               pred2 = predict(hM2, post=postList2, X=hM2$X, XRRR=hM2$XRRR,studyDesign=hM2$studyDesign, Yc=YcFull, mcmcStep=mcmcStep, expected=expected)
                pred2Array = abind(pred2,along=3)
-               pred1Array[,val.sp,] = pred2Array[,val.sp,]
+               pred1Array[,val.sp,] = pred2Array[val,val.sp,]
             }
          }
          predArray[val,,] = pred1Array
