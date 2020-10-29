@@ -11,7 +11,7 @@ constructGradient(hM, focalVariable, non.focalVariables = list(), ngrid = 20)
 
 \item{focalVariable}{focal variable over which the gradient is constructed}
 
-\item{non.focalVariables}{list giving assumptions on how non-focal variables co-vary with the focal variable}
+\item{non.focalVariables}{list giving assumptions on how non-focal variables co-vary with the focal variable or a single number given the default type for all non-focal variables}
 
 \item{ngrid}{number of points along the gradient (for continuous focal variables)}
 }
@@ -22,15 +22,17 @@ a named list with slots \code{XDataNew}, \code{studyDesignNew} and \code{rLNew}
 Constructs an environmental gradient over one of the variables included in \code{XData}
 }
 \details{
-\code{non.focalVariables} is a list, of which each element is on the form variable=list(type,value),
-where variable is one of the non-focal variables, and the value is needed only if type = 3
-type = 1 sets the values of the non-focal variable
-to the most likely value (defined as expected value for covariates, mode for factors)
-type = 2 sets the values of the non-focal variable to most likely value, given the value of focal variable,
-based on a linear relationship
-type = 3 fixes to the value given.
-if a non.focalVariable is not listed, type=2 is used as default
-note that if the focal variable is continuous, selecting type 2 for a non-focal categorical variable can cause abrupt changes in response
+In basic form, \code{non.focalVariables} is a list, where each element is on the form variable=list(type,value),
+where \code{variable} is one of the non-focal variables, and the \code{value} is needed only if \code{type = 3}. Alternatives
+\code{type = 1} sets the values of the non-focal variable
+to the most likely value (defined as expected value for covariates, mode for factors),
+\code{type = 2} sets the values of the non-focal variable to most likely value, given the value of focal variable,
+based on a linear relationship, and
+\code{type = 3} fixes to the value given.
+As a shortcut, a single number \code{1} or \code{2} can be given as a type
+used for all non-focal variables.
+If a \code{non.focalVariable} is not listed, \code{type=2} is used as default.
+Note that if the focal variable is continuous, selecting type 2 for a non-focal categorical variable can cause abrupt changes in response.
 }
 \examples{
 # Construct gradient for environmental covariate called 'x1'.
@@ -42,5 +44,5 @@ Gradient = constructGradient(TD$m, focalVariable="x1",non.focalVariables=list(x2
 
 }
 \seealso{
-\code{\link{plotGradient}}, \code{\link{predict}}
+\code{\link{plotGradient}}, \code{\link{predict}}.
 }

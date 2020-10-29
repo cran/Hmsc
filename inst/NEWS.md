@@ -1,3 +1,89 @@
+Version 3.0-9
+=============
+
+### Installation
+
+* **Hmsc** is no longer dependent on packages **mvtnorm** and
+  **pdist**.
+
+* **Hmsc** is now dependent on the **sp** package.
+
+* Vignettes can be re-built from their sources out of the box.
+  Previously they needed editing by hand to reproduce the pdf version.
+
+### Spatial Data
+
+* It is now possible to use Spatial data in random models. Handling of
+  Spatial data is based on the **sp** package and follows its
+  conventions. The locations of sampling units can be given as a
+  decimal longitude-latitude matrix, and the **Hmsc** functions will
+  use great circle distances in spatial models. Projected spatial
+  coordinates will be handled as such and Euclidean distances will be
+  used internally.
+
+* User-specified spatial distances can be more widely used in spatial
+  random models. However, some models are more flexible with spatial
+  coordinates. Most importantly, Gaussian Predictive Process (GPP)
+  needs spatial coordinate data.
+
+### New Features
+
+* Species data `Y` is normally a numeric matrix, but now it is allowed
+  to use numeric data frames, or in univariate models, a numeric vector.
+
+* A `tibble` can be used for measured covariates for fixed effects
+  `XData` in addition to a data frame (the wish of Github
+  [issue #37](https://github.com/hmsc-r/HMSC/issues/37)).
+
+* The names of `distr`ibutions can be abbreviated in `Hmsc` definition
+  as long as the names are unique.
+
+* `computeWAIC` is more robust against results of poorly fitting
+  models, and it is now possible to evaluate WAIC separately for each
+  species. See GitHub
+  [issue #44](https://github.com/hmsc-r/HMSC/issues/44).
+
+* `constructGradient` argument `nonFocalVariables` accepts now a
+  single number `1` or `2` as a shortcut of default type for all
+  non-focal variables instead of requesting a list of types of all
+  variables.
+
+* `plotGradient` gained new argument `yshow` which is a single number
+  or vector of numeric values that must be included on the
+  *y*-axis. In general, the *y*-axis is scaled to show the plotted
+  values, but `yshow = 0` will always show zero, even when this is not
+  among plotted values, and `yshow = c(0,1)` will show both zero and
+  one.
+
+* `plotVariancePartition` defaults to plot the original terms instead
+  of single contrast. For instance, only one component is shown for
+  multilevel factors instead of showing each level separately. User
+  can still specify how the components are displayed.
+
+* plot functions `plotBeta`, `plotGamma` and
+  `plotVariancePartitioning` allow setting or modifying the plot main
+  title. `plotGradient` already allowed this.
+
+* Random seed is now saved in `sampleMcmc` models. This allows
+  replication of same random number sequences. However, there is no
+  guarantee of replication across **Hmsc** release versions or
+  computing platforms.
+
+* `HmscRandomLevel` saves the function call. The call can be inspected
+  with `getCall()` and the model can be modified with `update()`.
+
+
+### Bug Fixes
+
+* `constructGradient` could sometimes shuffle spatial locations
+  leading into wrong predictions with spatial models.
+
+* `plotGradient(..., showData = TRUE)` ignored data values in setting
+  plot minimum. See GitHub
+  [issue #48](https://github.com/hmsc-r/HMSC/issues/48). The data
+  values were not always shown with `measure = "S"` in quantitative
+  linear models.
+
 Version 3.0-6
 =============
 

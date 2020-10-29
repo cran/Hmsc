@@ -1,7 +1,7 @@
 Package: Hmsc
 Title: Hierarchical Model of Species Communities
 Type: Package
-Version: 3.0-6
+Version: 3.0-9
 Authors@R: c(person(given = "Gleb", family="Tikhonov", role="aut"),
    person(given="Otso", family="Ovaskainen",
       email="otso.ovaskainen@helsinki.fi",
@@ -13,21 +13,22 @@ Authors@R: c(person(given = "Gleb", family="Tikhonov", role="aut"),
 Description: Hierarchical Modelling of Species Communities (HMSC) is
    a model-based approach for analyzing community ecological data. 
    This package implements it in the Bayesian framework with Gibbs
-   Markov chain Monte Carlo (MCMC) sampling.
+   Markov chain Monte Carlo (MCMC) sampling (Tikhonov et al. (2020)
+   <doi:10.1111/2041-210X.13345>).
 License: GPL-3 | file LICENSE
 URL: https://www.helsinki.fi/en/researchgroups/statistical-ecology/hmsc
-BugReports: https://github.com/hmsc-r/HMSC/issues
+BugReports: https://github.com/hmsc-r/HMSC/issues/
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.1
 Suggests: R.rsp, testthat, corrplot
 VignetteBuilder: R.rsp
 Depends: R (>= 3.0.2), coda
 Imports: abind, ape, BayesLogit, fields, FNN, ggplot2, MASS, Matrix,
-        MCMCpack, methods, mvtnorm, nnet, rlang, parallel, pdist, pROC,
-        statmod, truncnorm
+        MCMCpack, methods, nnet, rlang, parallel, pROC, sp, statmod,
+        truncnorm
 NeedsCompilation: no
-Packaged: 2020-03-19 10:41:44 UTC; jarioksa
+Packaged: 2020-10-29 12:06:16 UTC; jarioksa
 Author: Gleb Tikhonov [aut],
   Otso Ovaskainen [aut, cre] (<https://orcid.org/0000-0001-9750-4421>),
   Jari Oksanen [aut],
@@ -36,4 +37,4 @@ Author: Gleb Tikhonov [aut],
   Tad Dallas [aut]
 Maintainer: Otso Ovaskainen <otso.ovaskainen@helsinki.fi>
 Repository: CRAN
-Date/Publication: 2020-03-19 11:30:02 UTC
+Date/Publication: 2020-10-29 17:30:06 UTC

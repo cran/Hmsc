@@ -4,24 +4,26 @@
 #'
 #' @param hM a fitted \code{Hmsc} model object
 #' @param focalVariable focal variable over which the gradient is constructed
-#' @param non.focalVariables list giving assumptions on how non-focal variables co-vary with the focal variable
+#' @param non.focalVariables list giving assumptions on how non-focal variables co-vary with the focal variable or a single number given the default type for all non-focal variables
 #' @param ngrid number of points along the gradient (for continuous focal variables)
 #'
 #' @return a named list with slots \code{XDataNew}, \code{studyDesignNew} and \code{rLNew}
 #'
 #' @details
-#' \code{non.focalVariables} is a list, of which each element is on the form variable=list(type,value),
-#' where variable is one of the non-focal variables, and the value is needed only if type = 3
-#' type = 1 sets the values of the non-focal variable
-#' to the most likely value (defined as expected value for covariates, mode for factors)
-#' type = 2 sets the values of the non-focal variable to most likely value, given the value of focal variable,
-#' based on a linear relationship
-#' type = 3 fixes to the value given.
-#' if a non.focalVariable is not listed, type=2 is used as default
-#' note that if the focal variable is continuous, selecting type 2 for a non-focal categorical variable can cause abrupt changes in response
+#' In basic form, \code{non.focalVariables} is a list, where each element is on the form variable=list(type,value),
+#' where \code{variable} is one of the non-focal variables, and the \code{value} is needed only if \code{type = 3}. Alternatives
+#' \code{type = 1} sets the values of the non-focal variable
+#' to the most likely value (defined as expected value for covariates, mode for factors),
+#' \code{type = 2} sets the values of the non-focal variable to most likely value, given the value of focal variable,
+#' based on a linear relationship, and
+#' \code{type = 3} fixes to the value given.
+#' As a shortcut, a single number \code{1} or \code{2} can be given as a type
+#' used for all non-focal variables.
+#' If a \code{non.focalVariable} is not listed, \code{type=2} is used as default.
+#' Note that if the focal variable is continuous, selecting type 2 for a non-focal categorical variable can cause abrupt changes in response.
 #'
 #' @seealso
-#' \code{\link{plotGradient}}, \code{\link{predict}}
+#' \code{\link{plotGradient}}, \code{\link{predict}}.
 #'
 #' @examples
 #' # Construct gradient for environmental covariate called 'x1'.
@@ -32,13 +34,29 @@
 #' Gradient = constructGradient(TD$m, focalVariable="x1",non.focalVariables=list(x2=list(1)))
 #'
 #' @importFrom stats lm predict
+#' @importFrom methods is
+#' @importFrom sp coordinates `coordinates<-` proj4string `proj4string<-`
 #' @importFrom nnet multinom
 #'
 #' @export
 
-constructGradient = function(hM, focalVariable, non.focalVariables=list(), ngrid=20){
+constructGradient =
+   function(hM, focalVariable, non.focalVariables=list(), ngrid=20)
+{
+   ## default type 2 unless a single number is given as a non-focal variable
+   if (is.numeric(non.focalVariables) && length(non.focalVariables) == 1) {
+      defType <- non.focalVariables
+      if (!(defType %in% 1:2)) {
+         warning("only type 1 and 2 are allowed as a single number: setting to 2")
+         defType <- 2
+      }
+      non.focalVariables <- NULL
+   } else {
+      defType <- 2
+   }
 
    non.focalNames = names(non.focalVariables)
+
    Mode <- function(x, na.rm=FALSE) {
       if(na.rm){
          x = x[!is.na(x)]
@@ -73,7 +91,7 @@ constructGradient = function(hM, focalVariable, non.focalVariables=list(), ngrid
             }
          }
          if (!found) {
-            types = c(types,2)
+            types = c(types, defType)
             vals[[length(vals)+1]] = NA
          }
       }
@@ -182,22 +200,22 @@ constructGradient = function(hM, focalVariable, non.focalVariables=list(), ngrid
    names(rLNew) = hM$rLNames
    for (r in seq_len(hM$nr)){
       rL1 = hM$rL[[r]]
-      units = rL1$pi
-      units1 = c(units,"new_unit")
       xydata = rL1$s
-      if (!is.null(xydata)){
-         nxy = dim(xydata)[1]
-         xydata1 = matrix(NA,nrow = nxy+1, ncol = rL1$sDim)
-         for (j in 1:rL1$sDim){
-            xydata1[1:nxy,j] = xydata[,j]
+      if (!is.null(xydata)) {
+         if (is(xydata, "Spatial")) {
+            centre <- as.data.frame(t(colMeans(coordinates(xydata))))
+            rownames(centre) <- "new_unit"
+            coordinates(centre) <- colnames(centre)
+            proj4string(centre) <- proj4string(xydata)
+            xydata <- rbind(xydata, centre)
+         } else {
+            xydata = rbind(xydata, "new_unit" = colMeans(xydata))
          }
-         xydata1[nxy+1,] = colMeans(xydata)
-         rownames(xydata1) = units1
-         colnames(xydata1) = colnames(xydata)
-         rL1$s = xydata1
-      }
+      } # end !is.null(xydata)
+      rL1$s = xydata
       distMat = rL1$distMat
       if (!is.null(distMat)){
+         units1 = c(rownames(distMat), "new_unit")
          rm=rowMeans(distMat)
          focals = order(rm)[1:2]
          newdist = colMeans(distMat[focals,])
@@ -207,7 +225,7 @@ constructGradient = function(hM, focalVariable, non.focalVariables=list(), ngrid
          colnames(distMat1) = units1
          rL1$distMat = distMat1
       }
-      rL1$pi = units1
+      rL1$pi = c(rL1$pi, "new_unit")
       rL1$N = rL1$N+1
       rLNew[[r]] = rL1
    }

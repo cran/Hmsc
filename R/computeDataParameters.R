@@ -7,6 +7,8 @@
 #' @return a list including pre-computed matrix inverses and determinants (for phylogenetic and spatial random effects) needed in MCMC sampling
 #'
 #' @importFrom stats dist
+#' @importFrom methods is
+#' @importFrom sp spDists
 #' @importFrom FNN get.knn
 #' @importFrom Matrix .sparseDiagonal t solve
 #'
@@ -54,7 +56,10 @@ computeDataParameters = function(hM){
                 "Full" = {
                    if(is.null(hM$rL[[r]]$distMat)){
                       s = hM$rL[[r]]$s[levels(hM$dfPi[,r]),]
-                      distance = as.matrix(dist(s))
+                      if (is(s, "Spatial"))
+                         distance <- spDists(s)
+                      else
+                         distance = as.matrix(dist(s))
                    } else{
                       distance = hM$rL[[r]]$distMat[levels(hM$dfPi[,r]),levels(hM$dfPi[,r])]
                    }
@@ -84,13 +89,30 @@ computeDataParameters = function(hM){
                       hM$rL[[r]]$nNeighbours = 10
                    }
                    if(!is.null(hM$rL[[r]]$distMat)){
-                      stop("computeDataParameters: Nearest neighbours not available for distance matrices")
+                      dnam <- levels(hM$dfPi[,r])
+                      distMat <- hM$rL[[r]]$distMat[dnam, dnam]
                    }
+                   ## SpatialPoints are non-Euclidean, and we need
+                   ## distances to get the nearest neighbours
+                   if(is(hM$rL[[r]]$s, "Spatial"))
+                      distMat <- spDists(hM$rL[[r]]$s[levels(hM$dfPi[,r]),])
                    iWg = list()
                    RiWg = list()
                    detWg = rep(NA,alphaN)
-                   s = hM$rL[[r]]$s[levels(hM$dfPi[,r]),]
-                   indNN = get.knn(s,k=hM$rL[[r]]$nNeighbours)[[1]] #This uses FNN package, may be updated later to incorporate distance matrices
+                   ## get nNeighbours nearest neighbours. If we
+                   ## already have distances, we use them, but
+                   ## otherwise use a fast method finding nearest
+                   ## (Euclidean) neighbours and find their distances
+                   if (exists("distMat", inherits = FALSE)) {
+                      k <- seq_len(hM$rL[[r]]$nNeighbours)
+                      diag(distMat) <- Inf
+                      indNN <- t(apply(distMat, 2, function(x)
+                         sort(x, index.return = TRUE)$ix[k]))
+                      diag(distMat) <- 0
+                   } else { # fast with coordinate data and FNN package
+                       s = hM$rL[[r]]$s[levels(hM$dfPi[,r]),]
+                       indNN = get.knn(s,k=hM$rL[[r]]$nNeighbours)[[1]]
+                   }
                    indNN = t(apply(indNN,1,sort,decreasing=FALSE))
                    indices = list()
                    distList = list()
@@ -99,7 +121,10 @@ computeDataParameters = function(hM){
                       ind = ind[ind<i]
                       if(!is.na(ind[1])){
                          indices[[i]] = rbind(i*rep(1,length(ind)),ind)
-                         distList[[i]] = as.matrix(dist(s[c(ind,i),]))
+                         if (exists("distMat", inherits = FALSE))
+                            distList[[i]] <- distMat[c(ind,i), c(ind,i)]
+                         else
+                            distList[[i]] = as.matrix(dist(s[c(ind,i),]))
                       }
                    }
                    for (ag in 1:alphaN){
@@ -137,23 +162,24 @@ computeDataParameters = function(hM){
                 },
                 "GPP" = {
                    if(!is.null(hM$rL[[r]]$distMat)){
-                      stop("computeDataParameters: predictive gaussian process not available for distance matrices")
+                      stop("predictive gaussian process not available for distance matrices")
                    }
                    s = hM$rL[[r]]$s[levels(hM$dfPi[,r]),]
                    sKnot = hM$rL[[r]]$sKnot
-                   dim = ncol(s)
-                   nKnots = nrow(sKnot)
-                   di = matrix(0,nrow=np,ncol=nKnots)
-                   for(i in 1:dim){
-                      xx1 = matrix(rep(s[,i],nKnots),ncol=nKnots)
-                      xx2 = matrix(rep(sKnot[,i],np),ncol=np)
-                      dx = xx1 - t(xx2)
-                      di = di+dx^2
+                   if (is(s, "Spatial")) {
+                      dim <- ncol(coordinates(s))
+                      nKnots <- nrow(coordinates(sKnot))
+                      di12 <- spDists(s, sKnot)
+                      di22 <- spDists(sKnot)
+                   } else {
+                      dim <- ncol(s)
+                      nKnots <- nrow(sKnot)
+                      di12 <- sqrt(Reduce("+",
+                                          Map(function(i)
+                                              outer(s[,i], sKnot[,i], "-")^2,
+                                              seq_len(dim))))
+                      di22 = as.matrix(dist(sKnot))
                    }
-                   di12 = sqrt(di)
-
-                   di22 = as.matrix(dist(sKnot))
-
                    idDg = matrix(NA,nrow=np,ncol=alphaN)
                    idDW12g = array(NA, c(np,nKnots,alphaN))
                    Fg = array(NA, c(nKnots,nKnots,alphaN))
