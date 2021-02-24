@@ -53,7 +53,7 @@ predictLatentFactor =
             predictMeanField=FALSE)
 {
    if(predictMean && predictMeanField)
-      stop("Hmsc.predictLatentFactor: predictMean and predictMeanField arguments cannot be simultaneously TRUE")
+      stop("predictMean and predictMeanField arguments cannot be simultaneously TRUE")
    predN = length(postEta)
    indOld = (unitsPred %in% units)
    indNew = !(indOld)
@@ -86,11 +86,11 @@ predictLatentFactor =
                      D11 <- spDists(s1)
                      D12 <- spDists(s1, s2)
                   } else {
-                     dim = NCOL(s)
+                     dim = NCOL(s1)
                      D11 = as.matrix(dist(s1))
                      D12 = sqrt(Reduce("+",
                                        Map(function(i)
-                                           outer(s[,i], sKnot[,i], "-")^2,
+                                           outer(s1[,i], s2[,i], "-")^2,
                                            seq_len(dim))))
                   }
                } else {
@@ -149,8 +149,8 @@ predictLatentFactor =
                'NNGP' = {
                   unitsAll = c(units,unitsPred[indNew])
                   s = rL$s[unitsAll,]
-                  sOld = s[1:np,]
-                  sNew = matrix(s[np+(1:nn),],ncol=ncol(sOld))
+                  sOld = s[1:np,, drop=FALSE]
+                  sNew = as.matrix(s[np+(1:nn),],, drop=FALSE)
                   indNN = knnx.index(sOld,sNew,k=rL$nNeighbours)
                   indices = list()
                   dist12 = matrix(NA,nrow=rL$nNeighbours,ncol=nn)

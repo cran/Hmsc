@@ -81,7 +81,7 @@ sampleMcmc =
       nParallel = 1
    force(adaptNf)
    if(nParallel > nChains){
-      warning('Number of cores cannot be greater than the number of chains')
+      warning('number of cores cannot be greater than the number of chains')
       nParallel <- nChains
    }
    if(any(adaptNf>transient))
@@ -139,28 +139,46 @@ sampleMcmc =
    if(!identical(updater$Gamma2, FALSE) && any(abs(mGamma) > EPS)){
       updater$Gamma2 = FALSE
       if(updaterWarningFlag)
-         message("Setting updater$Gamma2=FALSE due to non-zero mGamma")
+         message("setting updater$Gamma2=FALSE due to non-zero mGamma")
    }
    if(!identical(updater$Gamma2, FALSE) && any(abs(iUGamma - kronecker(iUGamma[1:hM$nc,1:hM$nc], diag(hM$nt))) > EPS)){
       updater$Gamma2 = FALSE
       if(updaterWarningFlag)
-         message("Setting updater$Gamma2=FALSE due to non-kronecker structure of UGamma matrix")
+         message("setting updater$Gamma2=FALSE due to non-kronecker structure of UGamma matrix")
    }
    if(!identical(updater$Gamma2, FALSE) && (!is.null(C))){
       updater$Gamma2 = FALSE
       if(updaterWarningFlag)
-         message("Setting updater$Gamma2=FALSE due to specified phylogeny matrix")
+         message("setting updater$Gamma2=FALSE due to specified phylogeny matrix")
    }
    # updater$GammaEta
    if(!identical(updater$GammaEta, FALSE) && any(abs(mGamma) > EPS)){
       updater$GammaEta = FALSE
       if(updaterWarningFlag)
-         message("Setting updater$GammaEta=FALSE due to non-zero mGamma")
+         message("setting updater$GammaEta=FALSE due to non-zero mGamma")
    }
    if(!identical(updater$GammaEta, FALSE) && hM$nr==0){
       updater$GammaEta = FALSE
       if(updaterWarningFlag)
-         message("Setting updater$GammaEta=FALSE due to absence of random effects included to the model")
+         message("setting updater$GammaEta=FALSE due to absence of random effects included to the model")
+   }
+   # NNGP & GPP models will give an error in updateGammaEta()
+   if (!identical(updater$GammaEta, FALSE) &&
+       any(sapply(hM$rL,
+                  function(s) !is.null(s$spatialMethod) &&
+                  s$spatialMethod %in% c("GPP", "NNGP")))) {
+       updater$GammaEta = FALSE
+       if (updaterWarningFlag)
+           message("setting updater$GammaEta=FALSE: not implemented for spatial methods 'GPP' and 'NNGP'")
+   }
+
+   ## latentLoadingOrderSwap: as of version 3.0.10 this is still an
+   ## experimental feature and we do not advertise it by broadcasting
+   ## messages that it is disabled
+   if(identical(updater$latentLoadingOrderSwap, NULL)){
+      updater$latentLoadingOrderSwap = 0
+      if(FALSE && updaterWarningFlag) # do not advertise yet
+         message("setting updater$latentLoadingOrderSwap=0 disabling full-conditional swapping of consecutive latent loadings")
    }
 
 
@@ -219,12 +237,12 @@ sampleMcmc =
       if(!identical(updater$Gamma2, FALSE) && (!is.matrix(X))){
          updater$Gamma2 = FALSE
          if(updaterWarningFlag)
-            message("Setting updater$Gamma2=FALSE due to X is not a matrix")
+            message("setting updater$Gamma2=FALSE due to X is not a matrix")
       }
       if(!identical(updater$GammaEta, FALSE) && (!is.matrix(X))){
          updater$GammaEta = FALSE
          if(updaterWarningFlag)
-            message("Setting updater$GammaEta=FALSE due to X is not a matrix")
+            message("setting updater$GammaEta=FALSE due to X is not a matrix")
       }
 
       postList = vector("list", samples)
@@ -237,7 +255,8 @@ sampleMcmc =
 
          if(!identical(updater$GammaEta, FALSE)){
             GammaEtaList = updateGammaEta(Z=Z,Gamma=Gamma,V=chol2inv(chol(iV)),iV=iV,id=iSigma,
-               Eta=Eta,Lambda=Lambda,Alpha=Alpha, X=X,Pi=Pi,dfPi=dfPi,Tr=Tr,rL=hM$rL, rLPar=rLPar,Q=Qg[,,rho],iQ=iQg[,,rho],RQ=RQg[,,rho],U=hM$UGamma,iU=iUGamma)
+               Eta=Eta,Lambda=Lambda,Alpha=Alpha, X=X,Pi=Pi,dfPi=dfPi,Tr=Tr,rL=hM$rL, rLPar=rLPar,Q=Qg[,,rho],iQ=iQg[,,rho],RQ=RQg[,,rho],
+               mGamma=mGamma,U=hM$UGamma,iU=iUGamma)
             Gamma = GammaEtaList$Gamma
             Eta = GammaEtaList$Eta
          }
@@ -308,13 +327,26 @@ sampleMcmc =
          for(r in seq_len(nr)){
             if(iter <= adaptNf[r]){
                listPar = updateNf(eta=Eta[[r]],lambda=Lambda[[r]],alpha=Alpha[[r]],psi=Psi[[r]],delta=Delta[[r]],
-                  rL=hM$rL[[r]], iter=iter)
+                                  rL=hM$rL[[r]], iter=iter)
                Lambda[[r]] = listPar$lambda
                Eta[[r]] = listPar$eta
                Alpha[[r]] = listPar$alpha
                Psi[[r]] = listPar$psi
                Delta[[r]] = listPar$delta
             }
+         }
+
+         if(updater$latentLoadingOrderSwap>0 && (iter %% updater$latentLoadingOrderSwap == 0)){
+            for(r in seq_len(nr)){
+               listPar = updateLatentLoadingOrder(eta=Eta[[r]],lambda=Lambda[[r]],alpha=Alpha[[r]],delta=Delta[[r]],rL=hM$rL[[r]])
+               Lambda[[r]] = listPar$lambda
+               Eta[[r]] = listPar$eta
+               Alpha[[r]] = listPar$alpha
+               Delta[[r]] = listPar$delta
+            }
+            PsiDeltaList = updateLambdaPriors(Lambda=Lambda,Delta=Delta, rL=hM$rL)
+            Psi = PsiDeltaList$Psi
+            Delta = PsiDeltaList$Delta
          }
 
          if((iter>transient) && ((iter-transient) %% thin == 0)){
@@ -332,7 +364,7 @@ sampleMcmc =
             } else{
                samplingStatusString = "transient"
             }
-            cat(sprintf("Chain %d, iteration %d of %d, (%s)\n", chain, iter, transient+samples*thin, samplingStatusString) )
+            cat(sprintf("Chain %d, iteration %d of %d (%s)\n", chain, iter, transient+samples*thin, samplingStatusString) )
          }
       }
       return(postList)

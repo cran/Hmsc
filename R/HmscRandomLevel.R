@@ -1,21 +1,37 @@
 #' @title Create an \code{Hmsc} random level
 #'
-#' @description Specifies the structure of a random factor, including whether the random factor is assumed to
-#'   be spatially explicit or not, the spatial coordinates and the potential structure of covariate-dependent random factors.
-#' @param sData a dataframe containing spatial or temporal coordinates
-#'     of units of the random level. If this is a \code{SpatialPoints}
-#'     structure of the \CRANpkg{sp}, great circle distances will be
-#'     calculated, including cases where the coordinates are given as
-#'     longitude and latitude. \code{SpatialPoints} can be only used
-#'     when the spatial method \code{sMethod} is \code{Full}.
-#' @param sMethod a string specifying which spatial method to be used. Possible values are \code{Full}, \code{GPP} and \code{NNGP}
-#' @param distMat a distance matrix containing the distances between units of the random level, with unit names as rownames, or a \code{\link{dist}} structure.
-#' @param xData a dataframe containing the covariates measured at the units of the random level for covariate-dependent
-#'   associations
-#' @param units a vector, specifying the names of the units of a non-structured level
+#' @description Specifies the structure of a random factor, including
+#'     whether the random factor is assumed to be spatially explicit
+#'     or not, the spatial coordinates and the potential structure of
+#'     covariate-dependent random factors.
+#' @param sData a matrix or a dataframe containing spatial or temporal
+#'     coordinates of units of the random level. If this is a
+#'     \code{SpatialPoints} structure of the \CRANpkg{sp}, great
+#'     circle distances will be calculated, including cases where the
+#'     coordinates are given as longitude and
+#'     latitude. \code{SpatialPoints} can be only used when the
+#'     spatial method \code{sMethod} is \code{Full}. All spatial
+#'     locations should be unique. If you have several observations in
+#'     the same point, they should be identified by the random
+#'     levels.
+#' @param sMethod a string specifying which spatial method to be
+#'     used. Possible values are \code{Full}, \code{GPP} and
+#'     \code{NNGP}
+#' @param distMat a distance matrix containing the distances between
+#'     units of the random level, with unit names as rownames, or a
+#'     \code{\link{dist}} structure.
+#' @param xData a dataframe containing the covariates measured at the
+#'     units of the random level for covariate-dependent associations
+#' @param units a vector, specifying the names of the units of a
+#'     non-structured level
 #' @param N number of unique units on this level
-#' @param nNeighbours a scalar specifying the number of neighbours to be used in case the spatial method is set to \code{NNGP}. Only positive values smaller than the total number of plots are allowed.
-#' @param sKnot a dataframe containing the knot locations to be used for the gaussian predictive process if sMethod is set to \code{GPP}
+#' @param nNeighbours a scalar specifying the number of neighbours to
+#'     be used in case the spatial method is set to \code{NNGP}. Only
+#'     positive values smaller than the total number of plots are
+#'     allowed.
+#' @param sKnot a dataframe containing the knot locations to be used
+#'     for the gaussian predictive process if sMethod is set to
+#'     \code{GPP}
 #'
 #' @param longlat Interpret coordinate data \code{sData} as longitude
 #'     and latitude in decimal degrees. If this is \code{TRUE}, great
@@ -30,7 +46,8 @@
 #'   used for training the model.
 #'
 #'
-#' @seealso [setPriors.Hmsc()]
+#' @seealso \code{\link{setPriors.Hmsc}} to change the default priors
+#'     of an existing \code{HmscRandomLevel} object.
 #'
 #' @examples
 #' # Setting a random level with 50 units
@@ -54,9 +71,9 @@ HmscRandomLevel =
    rL = structure(list(pi=NULL, s=NULL, sDim=NULL, spatialMethod=NULL, x=NULL, xDim=NULL, N=NULL, distMat=NULL, #
       nfMax=NULL, nfMin=NULL, nNeighbours=NULL, nu=NULL, a1=NULL, b1=NULL, a2=NULL, b2=NULL, alphapw=NULL), class="HmscRandomLevel")
    if(nargs()==0)
-      stop("HmscRandomLevel: At least one argument must be specified")
+      stop("at least one argument must be specified")
    if(!is.null(distMat) && !is.null(sData)){
-      stop("HmscRandomLevel: sData and distMat cannot both be specified")
+      stop("sData and distMat cannot both be specified")
    }
    if(!is.null(sData)){
       ## longitude & latitude data?
@@ -73,25 +90,32 @@ HmscRandomLevel =
       rL$s = sData
       ## several standard functions do not work with Spatial (sp) data
       if (is(sData, "Spatial")) {
+         if (any(duplicated(coordinates(sData))))
+            stop("sData locations must be unique")
          rL$N <- nrow(coordinates(sData))
-         rL$pi <- sort(row.names(sData))
+         rL$pi <- as.factor(sort(row.names(sData)))
          rL$sDim <- ncol(coordinates(sData))
       } else {
+         if (any(duplicated(sData)))
+            stop("sData locations must be unique")
          rL$N = nrow(sData)
-         rL$pi = sort(rownames(sData))
+         rL$pi = as.factor(sort(rownames(sData)))
          rL$sDim = ncol(sData)
       }
       rL$spatialMethod = sMethod
       rL$nNeighbours = nNeighbours
       rL$sKnot = sKnot
    } else
-      rL$sDim = 0
+       rL$sDim = 0
+   ## we test against duplicated location in sData, but not here: zero
+   ## distances between locations give a rank-deficit distance
+   ## matrix with error in computeDataParameters
    if(!is.null(distMat)) {
       if (inherits(distMat, "dist"))
          distMat <- as.matrix(distMat)
       rL$distMat = distMat
       rL$N = nrow(distMat)
-      rL$pi = sort(rownames(distMat))
+      rL$pi = as.factor(sort(rownames(distMat)))
       if (is.null(rL$pi))
          stop("'distMat' should have rownames for random levels")
       rL$spatialMethod = sMethod
@@ -101,9 +125,9 @@ HmscRandomLevel =
    if(!is.null(xData)){
       if(!is.null(rL$pi)){
          if(any(!(rownames(xData)%in%rL$pi)))
-            stop("HmscRandomLevel: duplicated specification of unit names")
+            stop("duplicated specification of unit names")
       } else{
-         rL$pi = sort(rownames(xData))
+         rL$pi = sort(as.factor(rownames(xData)))
          rL$N = nrow(xData)
       }
       rL$xDim = ncol(xData)
@@ -113,7 +137,7 @@ HmscRandomLevel =
 
    if(!is.null(units)){
       if(!is.null(rL$pi))
-         stop("HmscRandomLevel: duplicated specification of unit names")
+         stop("duplicated specification of unit names")
       rL$pi = as.factor(units)
       rL$N = length(units)
       rL$sDim = 0
@@ -121,7 +145,7 @@ HmscRandomLevel =
 
    if(!is.null(N)){
       if(!is.null(rL$pi))
-         stop("HmscRandomLevel: duplicated specification of the number of units")
+         stop("duplicated specification of the number of units")
       rL$N = N
       rL$pi = as.factor(1:N)
       rL$sDim = 0

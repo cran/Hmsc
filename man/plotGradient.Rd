@@ -19,6 +19,8 @@ plotGradient(
   showData = FALSE,
   jigger = 0,
   yshow = NA,
+  showPosteriorSupport = TRUE,
+  main,
   ...
 )
 }
@@ -54,6 +56,12 @@ y-direction (for continuous covariates)}
 \item{yshow}{scale y-axis so that these values are also
 visible. This can used to scale y-axis so that it includes 0
 and the expected maximum values.}
+
+\item{showPosteriorSupport}{add margin text on the posterior
+support of predicted change from gradient minimum to maximum
+for continuous gradients.}
+
+\item{main}{main title for the plot.}
 
 \item{...}{additional arguments for plot}
 }
