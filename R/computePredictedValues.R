@@ -19,7 +19,23 @@
 #'
 #' @return an array of model predictions, made for each posterior sample
 #'
-#' @details If the option \code{partition} is not used, the posterior predictive distribution is based on the model
+#' @details
+#'
+#' There are two alternative functions \code{computePredictedValues}
+#' and \code{pcomputePredictedValues}. Function
+#' \code{pcomputePredictedValues} uses more aggressive parallelization
+#' and can be much faster when \code{partition} is used. Function
+#' \code{computePredictedValues} can run chains of each
+#' \code{sampleMcmc} partition in parallel, but
+#' \code{pcomputePredictedValues} can run each partition fold times
+#' chain in parallel (if hardware and operating systems
+#' permit). Function \code{pcomputePredictedValues} is still
+#' experimental, and therefore we provide both the old and new
+#' functions, but the old functions is scheduled to be removed in the
+#' future. Species partitions are not yet parallelized, and they can
+#' be very slow, especially with many \code{mcmcSteps}.
+#'
+#' If the option \code{partition} is not used, the posterior predictive distribution is based on the model
 #' fitted to the full data. If the option \code{partition} is used but \code{partition.sp} is not used, the posterior predictive distribution
 #' is based on cross-validation over the sampling units. If \code{partition.sp} is additionally used, then, when predictions are made for
 #' each fold of the sampling units, the predictions are done separately for each fold of species. When making the predictions
@@ -64,7 +80,11 @@ computePredictedValues = function(hM, partition=NULL, partition.sp=NULL, start=1
          stop("partition parameter must be a vector of length ny")
       }
       nfolds = length(unique(partition))
-      postN = Reduce(sum, lapply(hM$postList, length))
+      if (thin > 1 || start > 1)
+          postN = sum(sapply(hM$postList, function(z)
+              length(seq(from=start, to=length(z), by=thin))))
+      else
+          postN = Reduce(sum, lapply(hM$postList, length))
       predArray = array(NA,c(hM$ny,hM$ns,postN))
       for (k in 1:nfolds){
          cat(sprintf("Cross-validation, fold %d out of %d\n", k, nfolds))
@@ -130,7 +150,7 @@ computePredictedValues = function(hM, partition=NULL, partition.sp=NULL, start=1
          hM1 = sampleMcmc(hM1, samples=hM$samples, thin=hM$thin, transient=hM$transient, adaptNf=hM$adaptNf,
                           initPar=initPar, nChains=nChains, nParallel=nParallel, updater = updater,
                           verbose = verbose, alignPost=alignPost)
-         postList = poolMcmcChains(hM1$postList, start=start)
+         postList = poolMcmcChains(hM1$postList, start=start, thin = thin)
          ## stringsAsFactors probably not needed below
          dfPi = as.data.frame(matrix(NA,sum(val),hM$nr), stringsAsFactors = TRUE)
          colnames(dfPi) = hM$rLNames

@@ -17,6 +17,8 @@
 #' \code{prepareGradient} takes as input the new environmental and spatial data, \code{constructGradient}
 #' generates those data to represent a new environmental gradient.
 #'
+#' @importFrom methods is
+#' @importFrom sp coordinates `coordinates<-` proj4string `proj4string<-`
 #'
 #' @seealso
 #' \code{\link{constructGradient}}, \code{\link{predict}}
@@ -26,6 +28,10 @@
 prepareGradient = function(hM, XDataNew, sDataNew){
    ## XDataNew needs to be added and the function needs to be more
    ## extensively tested
+   if (any(is.na(XDataNew)))
+       stop("missing values are not allowed in 'XDataNew'")
+   if (!missing(sDataNew) && any(is.na(sDataNew)))
+       stop("missing values are not allowed in 'sDataNew'")
    nyNew = NROW(XDataNew)
    dfPiNew = matrix(NA,nyNew,hM$nr)
    colnames(dfPiNew) = hM$rLNames
@@ -49,13 +55,22 @@ prepareGradient = function(hM, XDataNew, sDataNew){
          rL1$pi = unitsAll
          row.names(xyNew) = dfPiNew[,r]
          xyOld = rL1$s
+         ## Projected Spatial data need equal Spatial data for rbind()
+         if (is(xyOld, "Spatial")) {
+             xyNew <- as.data.frame(xyNew)
+             colnames(xyNew) <- colnames(coordinates(xyOld))
+             coordinates(xyNew) <- colnames(xyNew)
+             proj4string(xyNew) <- proj4string(xyOld)
+         }
          ## spatial data xyOld can be a data frame, and in that case
          ## the column names of xyNew must match to xyOld or rbind
          ## barfs (github issue #80). Instead of stopping with error,
          ## we make the colnames equal.
-         xyNew = as.matrix(xyNew) # should be safe as xyNew must be numeric
-         if (is.data.frame(xyOld))
-             colnames(xyNew) = colnames(xyOld)
+         else {
+             xyNew = as.matrix(xyNew) # should be safe as xyNew must be numeric
+             if (is.data.frame(xyOld))
+                 colnames(xyNew) = colnames(xyOld)
+         }
          rL1$s = rbind(xyOld, xyNew)
       }
       rLNew[[r]] = rL1

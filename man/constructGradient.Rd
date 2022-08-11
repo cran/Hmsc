@@ -4,7 +4,13 @@
 \alias{constructGradient}
 \title{constructGradient}
 \usage{
-constructGradient(hM, focalVariable, non.focalVariables = list(), ngrid = 20)
+constructGradient(
+  hM,
+  focalVariable,
+  non.focalVariables = list(),
+  ngrid = 20,
+  coordinates = list()
+)
 }
 \arguments{
 \item{hM}{a fitted \code{Hmsc} model object}
@@ -14,6 +20,13 @@ constructGradient(hM, focalVariable, non.focalVariables = list(), ngrid = 20)
 \item{non.focalVariables}{list giving assumptions on how non-focal variables co-vary with the focal variable or a single number given the default type for all non-focal variables}
 
 \item{ngrid}{number of points along the gradient (for continuous focal variables)}
+
+\item{coordinates}{A named list of coordinates were model is
+evaluated in spatial or temporal models. The name should be one
+of the random levels, and value can be \code{"c"} for mean of
+coordinates (default), \code{"i"} for infinite coordinates
+without effect of spatial dependence, or a numeric vector of
+coordinates where the model is evaluated.}
 }
 \value{
 a named list with slots \code{XDataNew}, \code{studyDesignNew} and \code{rLNew}
@@ -33,6 +46,10 @@ As a shortcut, a single number \code{1} or \code{2} can be given as a type
 used for all non-focal variables.
 If a \code{non.focalVariable} is not listed, \code{type=2} is used as default.
 Note that if the focal variable is continuous, selecting type 2 for a non-focal categorical variable can cause abrupt changes in response.
+
+The function needs access to the original \code{XData} data frame,
+and cannot be used if you defined your model with \code{X} model
+matrix. In that case you must construct your gradient manually.
 }
 \examples{
 # Construct gradient for environmental covariate called 'x1'.

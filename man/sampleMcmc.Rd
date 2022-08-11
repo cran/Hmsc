@@ -14,6 +14,7 @@ sampleMcmc(
   adaptNf = rep(transient, hM$nr),
   nChains = 1,
   nParallel = 1,
+  useSocket = TRUE,
   dataParList = NULL,
   updater = list(),
   fromPrior = FALSE,
@@ -29,7 +30,12 @@ sampleMcmc(
 
 \item{thin}{the number of MCMC steps between each recording of samples from the posterior}
 
-\item{initPar}{a named list of parameter values used for initiation of MCMC states}
+\item{initPar}{a named list of parameter values used for
+initialization of MCMC states, or alternatively text
+\code{"fixed effects"} to use linear Maximum Likelihood model
+instead of randomizing from prior; the \code{"fixed effects"}
+can shorten the transient phase of sampling, but will
+initialize all chains to the same starting values}
 
 \item{verbose}{the interval between MCMC steps printed to the console (default is an interval that prints ca. 50 reports)}
 
@@ -38,7 +44,13 @@ number of latent factors is conducted}
 
 \item{nChains}{number of independent MCMC chains to be run}
 
-\item{nParallel}{number of parallel processes by which the chains are executed}
+\item{nParallel}{number of parallel processes by which the chains
+are executed.}
+
+\item{useSocket}{(logical) use socket clusters in parallel
+processing; in Windows this is the only option, but in other
+operating systems fork clusters are a better alternative, and
+this should be set \code{FALSE}.}
 
 \item{dataParList}{a named list with pre-computed \code{Qg}, \code{iQg}, \code{RQg}, \code{detQg}, \code{rLPar}
 parameters}
@@ -66,7 +78,7 @@ The exact number of samples to be recorded in order to get a proper estimate of 
 
   The value of 1 for \code{thin} argument means that at each MCMC step after the transient a sample is recorded.
 
-  Typically, the vlaue of \code{nParallel} equal to \code{nChains} leads to most efficient usage of available
+  Typically, the value of \code{nParallel} equal to \code{nChains} leads to most efficient usage of available
   parallelization capacities. However, this may be not the case if R is configured with multi-tread linear
   algebra libraries. For debug and test purposes, the \code{nParallel} should be set to 1, since only in this case a
   details of the potentially encountered errors would be available.

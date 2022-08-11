@@ -1,3 +1,95 @@
+Version 3.0-13
+==============
+
+### New Features
+
+* Posterior samples from several independent `Hmsc` objects can be
+  combined as new chains with new method function `c()`. This provides
+  an easy alternative for distributed computing. The user should take
+  care that these independent models are defined similarly so that
+  they really can be combined. The function tests for similarity of
+  objects, but it only gives warnings and can allow combination of
+  incompatible models at user will. The user should be careful **not**
+  to start these models from the same random number seed as these just
+  duplicate your data instead of adding independent new samples.
+
+* `sampleMcmc` allows the use of fork clusters instead of socket
+  clusters. Socket clusters are still the only alternative in Windows,
+  but other platforms can profit from the use of fork clusters which
+  may have lower memory use and are faster to set up, and also may be
+  marginally faster. The choice can be made with new argument
+  `useSocket` (defaults `TRUE`).
+
+* Updaters in `sampleMcmc` can occasionally fail in extreme `Hmsc`
+  models. This is no longer an error that stops analysis, but sampling
+  tries to recover from failures. The numbers of failures for each
+  updater is reported with the result. If there are only a low number
+  of failures, the sampling is safe to use. If there are updater
+  errors only in some chains, these chains can be removed, but other
+  chains can be used. See
+  [issue #123](https://github.com/hmsc-r/HMSC/issues/123).
+
+* New experimental function `pcomputePredictedValues` with more
+  aggressive parallelization than `computePredictedValues`. In old
+  code chains within each partition could be run in parallel, but
+  partitions were run serially. In the new function, all chains and
+  partitions can be run in parallel. The plan is to replace the old
+  function with this new alternative, but at the moment both functions
+  are available for testing. See
+  [issue #142](https://github.com/hmsc-r/HMSC/issues/142).
+
+* Implemented longitude-latitude coordinates and user-supplied
+  distance matrices for NNGP spatial models. Sanity checks for spatial
+  model input were improved.
+
+* Improved support for spatial models defined _via_ distance matrices
+  instead of spatial coordinates.
+
+* `constructGradient` provides wider choice of coordinates for
+  centroid of `new_unit`, including user-set and infinite (meaning no
+  spatial dependence) coordinates.
+
+* Detect cases when user tries to analyse posterior samples of
+  non-sampled `Hmsc` object to avoid confusing error messages such as
+  reported in [issue #125](https://github.com/hmsc-r/HMSC/issues/125).
+
+### Bug Fixes
+
+* `sampleMcmc` with `initPar = "fixed effects"` failed if **Y**
+  variates had missing values. The choice `"fixed effects"` was
+  undocumented in the package, but was used in several scripts at
+  large. See [issue #101](https://github.com/hmsc-r/HMSC/issues/101).
+
+* The default number of neighbours in NNGP spatial models was not
+  known in all posterior analysis tools giving very obscure error
+  messages. Reported by Ben Weigel (Uni Helsinki).
+
+* Covariate-dependent latent loadings did not have correct alignment.
+
+* `predict` did not honour setting `start` and `thin` which could
+  result in huge output data that exhausted memory. See
+  [issue #86](https://github.com/hmsc-r/HMSC/issues/86).
+
+* `predict` failed in NNGP spatial models. See
+  [issue #96](https://github.com/hmsc-r/HMSC/issues/96).
+
+* `predict` failed with one-dimensional spatial data. See comments in
+  unrelated [issue #61](https://github.com/hmsc-r/HMSC/issues/61).
+
+* Missing values are handled better in `predict`, but they are still
+  not allowed in all cases.
+
+* `prepareGradient` failed with geo-referenced spatial random levels.
+
+* More robust handling of models that were fitted with model matrix
+  `X` instead of model frame `XData` and model formula
+  `XFormula`. Concerns functions `biPlot`,
+  `computeVariancePartitioning` and `constructGradient`. Fixes
+  [issue #126](https://github.com/hmsc-r/HMSC/issues/126).
+
+* `biPlot` has improved handling of colour scaling of continuous
+  variables.
+
 Version 3.0-11
 ==============
 

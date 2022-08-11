@@ -3,7 +3,7 @@
 #' @description Computes initial parameter values before the sampling starts
 #'
 #' @param hM a fitted \code{Hmsc} model object
-#' @param initPar initial parameter values
+#' @param initPar a list of initial parameter values
 #'
 #' @return a list of Hmsc model parameters
 #'
@@ -60,13 +60,15 @@ computeInitialParameters = function(hM, initPar){
             list = {
                XEff = XScaled[[j]]
             }
-         )
+            )
+         ## Y can contain NA values
+         kk <- !is.na(hM$Y[,j])
          if(hM$distr[j,1] == 1)
-            fm = lm.fit(XEff, hM$Y[,j])
+            fm = lm.fit(XEff[kk,, drop=FALSE], hM$Y[kk,j])
          if(hM$distr[j,1] == 2)
-            fm = glm.fit(XEff, hM$Y[,j], family=binomial(link="probit"))
+            fm = glm.fit(XEff[kk,, drop=FALSE], hM$Y[kk,j], family=binomial(link="probit"))
          if(hM$distr[j,1] == 3)
-            fm = glm.fit(XEff, hM$Y[,j], family=poisson())
+            fm = glm.fit(XEff[kk,, drop=FALSE], hM$Y[kk,j], family=poisson())
          Beta[,j] = coef(fm)
       }
       Gamma = matrix(NA,hM$nc,hM$nt)
