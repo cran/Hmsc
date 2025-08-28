@@ -4,12 +4,14 @@
 \alias{computeInitialParameters}
 \title{computeInitialParameters}
 \usage{
-computeInitialParameters(hM, initPar)
+computeInitialParameters(hM, initPar, computeZ = TRUE)
 }
 \arguments{
-\item{hM}{a fitted \code{Hmsc} model object}
+\item{hM}{a \code{Hmsc} model object}
 
 \item{initPar}{a list of initial parameter values}
+
+\item{computeZ}{whether to compute the latent predictor Z. Disable only for the purpose of Hmsc-HPC initialization.}
 }
 \value{
 a list of Hmsc model parameters

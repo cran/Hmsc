@@ -1,7 +1,7 @@
 #' @importFrom stats rnorm
 #' @importFrom Matrix bdiag Diagonal sparseMatrix t Matrix
 #'
-updateEta = function(Y,Z,Beta,iSigma,Eta,Lambda,Alpha, rLPar, X,Pi,dfPi,rL){
+updateEta = function(Y,Z,Beta,iSigma,Eta,Lambda,Alpha, rLPar, Loff,X,Pi,dfPi,rL){
    ny = nrow(Z)
    ns = ncol(Z)
    nr = ncol(Pi)
@@ -25,16 +25,14 @@ updateEta = function(Y,Z,Beta,iSigma,Eta,Lambda,Alpha, rLPar, X,Pi,dfPi,rL){
       } else{
          LRan[[r]] = matrix(0,ny,ns)
          for(k in 1:rL[[r]]$xDim)
-            LRan[[r]] = LRan[[r]] + (Eta[[r]][Pi[,r],]*rL[[r]]$x[as.character(dfPi[,r]),r]) %*% Lambda[[r]][,,r]
+            LRan[[r]] = LRan[[r]] + (Eta[[r]][Pi[,r],]*rL[[r]]$x[as.character(dfPi[,r]),r]) %*% Lambda[[r]][,,k]
       }
    }
    for(r in seq_len(nr)){
       rnames=rownames(Eta[[r]])
-      if(nr > 1){
-         S = Z - (LFix + Reduce("+", LRan[setdiff(1:nr, r)]))
-      } else{
-         S = Z - LFix
-      }
+      S = Z - Reduce("+", c(list(LFix), LRan[setdiff(1:nr,r)]))
+      if(!is.null(Loff)) S = S - Loff
+
       lambda = Lambda[[r]]
       nf = dim(lambda)[1]
       lPi = Pi[,r]
@@ -86,8 +84,7 @@ updateEta = function(Y,Z,Beta,iSigma,Eta,Lambda,Alpha, rLPar, X,Pi,dfPi,rL){
                      V = chol2inv(RiV)
                      mu = colSums(tcrossprod(S[rows,,drop=FALSE]*matrix(iSigma,length(rows),ns,byrow=TRUE)*Yx[rows,], lambda)) %*% V
                   }
-
-                  eta[unLPi[q],] = mu + t(backsolve(RiV,rnorm(ny)))
+                  eta[unLPi[q],] = mu + t(backsolve(RiV,rnorm(nf)))
                }
             }
          } else{
@@ -104,7 +101,7 @@ updateEta = function(Y,Z,Beta,iSigma,Eta,Lambda,Alpha, rLPar, X,Pi,dfPi,rL){
                RiV = chol(iV)
                V = chol2inv(RiV)
                mu = colSums(tcrossprod(S[rows,,drop=FALSE]*matrix(iSigma,length(rows),ns,byrow=TRUE)*Yx[rows,], lambdaLocal)) %*% V
-               eta[unLPi[q],] = mu + t(backsolve(RiV,rnorm(ny)))
+               eta[unLPi[q],] = mu + t(backsolve(RiV,rnorm(nf)))
             }
          }
       } else{
@@ -149,9 +146,9 @@ updateEta = function(Y,Z,Beta,iSigma,Eta,Lambda,Alpha, rLPar, X,Pi,dfPi,rL){
                       fS = Matrix::tcrossprod(Matrix::crossprod(P,S), lambda*matrix(iSigma,nf,ns,byrow=TRUE))
                    }
                    iUEta = iWs + tmp1
-                   R = chol(iUEta)
-                   tmp2 = backsolve(R, as.vector(t(fS)), transpose=TRUE) + rnorm(nf*np[r])
-                   feta = backsolve(R, tmp2)
+                   R = Matrix::chol(iUEta)
+                   tmp2 = Matrix::solve(t(R), as.vector(t(fS))) + rnorm(nf*np[r])
+                   feta = Matrix::solve(R, tmp2)
                    eta = matrix(feta,np[r],nf,byrow=TRUE)
                 },
                 "GPP" = {
@@ -250,7 +247,7 @@ updateEta = function(Y,Z,Beta,iSigma,Eta,Lambda,Alpha, rLPar, X,Pi,dfPi,rL){
          } else{
             LRan[[r]] = matrix(0,ny,ns)
             for(k in 1:rL[[r]]$xDim)
-               LRan[[r]] = LRan[[r]] + (Eta[[r]][Pi[,r],]*rL[[r]]$x[as.character(dfPi[,r]),r]) %*% Lambda[[r]][,,r]
+               LRan[[r]] = LRan[[r]] + (Eta[[r]][Pi[,r],]*rL[[r]]$x[as.character(dfPi[,r]),r]) %*% Lambda[[r]][,,k]
          }
       }
    }

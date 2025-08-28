@@ -35,6 +35,7 @@
 #'     \code{\link{constructKnots}}. The knot locations shall not
 #'     duplicate \code{sData}.
 #'
+#'
 #' @param longlat Interpret coordinate data \code{sData} as longitude
 #'     and latitude in decimal degrees. If this is \code{TRUE}, great
 #'     circle distances will be used instead of Euclidean distances.
@@ -67,11 +68,12 @@
 #' @export
 
 HmscRandomLevel =
-    function(sData=NULL, sMethod = "Full", distMat=NULL, xData=NULL, units=NULL,
-             N=NULL, nNeighbours=10, sKnot=NULL, longlat = FALSE)
+    function(sData=NULL, sMethod ="Full", distMat=NULL, xData=NULL, units=NULL,
+             N=NULL, nNeighbours=10, sKnot=NULL, longlat=FALSE)
 {
-   rL = structure(list(pi=NULL, s=NULL, sDim=NULL, spatialMethod=NULL, x=NULL, xDim=NULL, N=NULL, distMat=NULL, #
-      nfMax=NULL, nfMin=NULL, nNeighbours=NULL, nu=NULL, a1=NULL, b1=NULL, a2=NULL, b2=NULL, alphapw=NULL), class="HmscRandomLevel")
+   rL = structure(list(pi=NULL, s=NULL, sDim=NULL, spatialMethod=NULL, x=NULL, xDim=NULL, N=NULL, distMat=NULL, xMat=NULL, #
+      nfMax=NULL, nfMin=NULL, nNeighbours=NULL, sKnot=NULL,
+      nu=NULL, a1=NULL, b1=NULL, a2=NULL, b2=NULL, alphapw=NULL), class="HmscRandomLevel")
    if(nargs()==0)
       stop("at least one argument must be specified")
    if(!is.null(distMat) && !is.null(sData)){
@@ -134,7 +136,7 @@ HmscRandomLevel =
    if(!is.null(xData)){
       if(!is.null(rL$pi)){
          if(any(!(rownames(xData)%in%rL$pi)))
-            stop("duplicated specification of unit names")
+            stop("mismatching specification of unit names in xData")
       } else{
          rL$pi = sort(as.factor(rownames(xData)))
          rL$N = nrow(xData)

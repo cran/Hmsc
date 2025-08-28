@@ -2,8 +2,9 @@
 #'
 #' @description Computes initial parameter values before the sampling starts
 #'
-#' @param hM a fitted \code{Hmsc} model object
+#' @param hM a \code{Hmsc} model object
 #' @param initPar a list of initial parameter values
+#' @param computeZ whether to compute the latent predictor Z. Disable only for the purpose of Hmsc-HPC initialization.
 #'
 #' @return a list of Hmsc model parameters
 #'
@@ -14,7 +15,7 @@
 #' @importFrom MCMCpack riwish
 
 
-computeInitialParameters = function(hM, initPar){
+computeInitialParameters = function(hM, initPar, computeZ=TRUE){
    parList = list()
 
    if(hM$ncRRR>0){
@@ -71,6 +72,7 @@ computeInitialParameters = function(hM, initPar){
             fm = glm.fit(XEff[kk,, drop=FALSE], hM$Y[kk,j], family=poisson())
          Beta[,j] = coef(fm)
       }
+      Beta[is.na(Beta)] = 0
       Gamma = matrix(NA,hM$nc,hM$nt)
       for(k in 1:hM$nc){
          fm = lm.fit(hM$Tr, Beta[k,])
@@ -248,12 +250,13 @@ computeInitialParameters = function(hM, initPar){
             LRan[[r]] = LRan[[r]] + (Eta[[r]][hM$Pi[,r],,drop=FALSE]*hM$rL[[r]]$x[as.character(hM$dfPi[,r]),r]) %*% Lambda[[r]][,,k]
       }
    }
-   if(hM$nr > 0){
-      Z = LFix + Reduce("+", LRan)
-   } else
-      Z = LFix
+   Z = Reduce("+", c(list(LFix), LRan))
 
-   Z = updateZ(Y=hM$Y,Z=Z,Beta=Beta,iSigma=sigma^-1,Eta=Eta,Lambda=Lambda, X=XScaled,Pi=hM$Pi,dfPi=hM$dfPi,distr=hM$distr,rL=hM$rL)
+   if(computeZ){
+      Z = updateZ(Y=hM$Y,Z=Z,Beta=Beta,iSigma=sigma^-1,Eta=Eta,Lambda=Lambda, Loff=hM$Loff,X=XScaled,Pi=hM$Pi,dfPi=hM$dfPi,distr=hM$distr,rL=hM$rL)
+   } else{
+      Z = NULL
+   }
 
    parList$Gamma = Gamma
    parList$V = V

@@ -4,10 +4,13 @@
 \alias{computeDataParameters}
 \title{computeDataParameters}
 \usage{
-computeDataParameters(hM)
+computeDataParameters(hM, compactFormat = FALSE)
 }
 \arguments{
 \item{hM}{a fitted \code{Hmsc} model object}
+
+\item{compactFormat}{disable computation of 3D arrays for phylogeny and spatial priors.
+Only used internally for reduced size of exported object to Hmsc-HPC.}
 }
 \value{
 a list including pre-computed matrix inverses and determinants (for phylogenetic and spatial random effects) needed in MCMC sampling

@@ -46,7 +46,7 @@
     ## phyloTree (but only C); call. What about *Names, data.frames
     ## (built to model.matrix)?
     checkItems <-
-        c("Y", "XData", "X", "XScaled", "XRRRData", "XRRRScaled",
+        c("Y", "Loff", "XData", "X", "XScaled", "XRRRData", "XRRRScaled",
           "YScaled", "XInterceptInd", "studyDesign", "ranLevels",
           "ranLevelsUsed", "dfPi", "rL", "Pi", "TrData","Tr",
           "TrScaled", "TrInterceptInd", "C", "distr", "ny", "ns",
@@ -54,7 +54,7 @@
           "nf", "ncr", "ncs", "np", "spNames", "covNames", "trNames",
           "rLNames", "XScalePar", "XRRRScalePar", "YScalePar",
           "TrScalePar", "V0", "f0", "mGamma", "UGamma", "aSigma",
-          "bSigma", "nu", "a1", "b1", "a2", "b2", "rhopw", "nuRRR",
+          "bSigma", "rhopw", "nuRRR",
           "a1RRR", "b1RRR", "a2RRR", "b2RRR",  "initPar", "repN")
     tmp <- hMList[[1]]
     objCheck <- lapply(hMList[-1],

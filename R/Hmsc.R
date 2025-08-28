@@ -5,7 +5,7 @@
 #' @param Y a matrix of species occurences or abundances
 #' @param XFormula a \code{\link{formula}}-class object for fixed effects
 #'    (linear regression)
-#' @param XData a data frame of measured covariates for fixed effects with
+#' @param XData a data frame or list of data frames of measured covariates for fixed effects with
 #'    \code{\link{formula}}-based specification
 #' @param X a matrix of measured covariates for fixed effects with direct specification
 #' @param XScale a boolean flag indicating whether to scale covariates for the fixed effects
@@ -16,6 +16,7 @@
 #' @param ncRRR number of covariates (linear combinations) for reduced-rank regression
 #' @param XRRRScale a boolean flag indicating whether to scale covariates for reduced-rank regression
 #' @param YScale a boolean flag whether to scale responses for which normal distribution is assumed
+#' @param Loff an offset additive term that is added to the linear predictor, same shape as \code{Y}
 #' @param studyDesign a data frame of correspondence between sampling units and units on different levels of latent
 #'   factors
 #' @param ranLevels a named list of \code{HmscRandomLevel}-class objects, specifying the structure and data for random
@@ -40,6 +41,9 @@
 #'   Only one of \code{XFormula}-\code{XData} and \code{X} arguments can be specified. Similar requirement applies to
 #'   \code{TrFormula}-\code{TrData} and \code{Tr}. It is recommended to use the specification with \code{\link{formula}},
 #'   since that information enables additional features for postprocessing of the fitted model.
+#'
+#'   Besides specifying identical covariates for all species with \code{XData} being a dataframe, it is possible to provide
+#'   species-specific sets of covariates by passing a list of dataframes of similar shape and structure.
 #'
 #'   As default, scaling is applied for \code{X} and \code{Tr} matrices, but not for \code{Y} matrix. If the \code{X} and/or \code{Tr} matrices are
 #'   scaled, the estimated parameters are back-transformed so that the estimated parameters correspond to the original
@@ -79,9 +83,12 @@
 #'   observation models for all species. The available shortcuts are \code{"normal"}, \code{"probit"}, \code{"poisson"},
 #'   \code{"lognormal poisson"}. If \code{distr} is a vector of string literals, each element corresponds to one species,
 #'   should be either \code{"normal"}, \code{"probit"}, \code{"poisson"}, \code{"lognormal poisson"},
-#' and these can be abbreviated as long as they are unique strings.
+#'   and these can be abbreviated as long as they are unique strings.
 #'   The matrix argument and the vector of string literals allows specifying different observation
 #'   models for different species.
+#'
+#'   The offset term \code{Loff} enables to add a pre-defined quantity to the linear predictor.
+#'   This can be used to account for variable sampling effort across sampling units and species.
 #'
 #'   By default this constructor assigns default priors to the latent factors. Those priors are designed to be
 #'   reasonably flat assuming that the covariates, species traits and normally distributed responses are scaled.
@@ -115,14 +122,14 @@
 Hmsc = function(Y, XFormula=~., XData=NULL, X=NULL, XScale=TRUE,
                 XSelect=NULL,
                 XRRRData=NULL, XRRRFormula=~.-1, XRRR=NULL, ncRRR=2, XRRRScale=TRUE,
-                YScale = FALSE,
+                YScale = FALSE, Loff=NULL,
                 studyDesign=NULL, ranLevels=NULL, ranLevelsUsed=names(ranLevels),
                 TrFormula=NULL, TrData=NULL, Tr=NULL, TrScale=TRUE,
                 phyloTree=NULL, C=NULL,
                 distr="normal", truncateNumberOfFactors=TRUE){
 
    hM = structure(list(
-      Y = NULL,
+      Y = NULL, Loff=NULL,
       XData=NULL, XFormula=NULL, X=NULL, XScaled=NULL, XSelect=NULL,
       XRRRData=NULL, XRRRFormula=NULL, XRRR=NULL, XRRRScaled=NULL,
       YScaled=NULL, XInterceptInd=NULL,
@@ -160,7 +167,6 @@ Hmsc = function(Y, XFormula=~., XData=NULL, X=NULL, XScale=TRUE,
       V0=NULL, f0=NULL,
       mGamma=NULL, UGamma=NULL,
       aSigma=NULL, bSigma=NULL,
-      nu=NULL, a1=NULL, b1=NULL, a2=NULL, b2=NULL,
       rhopw=NULL,
       nuRRR=NULL, a1RRR=NULL, b1RRR=NULL, a2RRR=NULL, b2RRR=NULL,
 
@@ -700,6 +706,16 @@ Hmsc = function(Y, XFormula=~., XData=NULL, X=NULL, XScale=TRUE,
       }
       hM$YScalePar = YScalePar
       hM$YScaled = YScaled
+   }
+
+   #offset to the latent predictor
+   if(!is.null(Loff)){
+      if(!is.matrix(Loff)) stop("Loff argument must be NULL or a numeric matrix")
+      if(nrow(Loff) != hM$ny) stop("number of rows in Loff argument must be equal to ny")
+      if(ncol(Loff) != hM$ns) stop("number of columns in Loff argument must be equal to ns")
+      hM$Loff = Loff
+   } else{
+      hM$Loff = NULL
    }
 
    hM = setPriors(hM, setDefault=TRUE)

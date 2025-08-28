@@ -18,7 +18,7 @@ updateGammaV = function(Beta,Gamma,iV,rho, Tr,C, iQg,RQg, mGamma,iUGamma,V0,f0){
    E = Beta - Mu
    A = E %*% tcrossprod(iQ, E)
    Vn = chol2inv(chol(A+V0))
-   iV = rwish(f0+ns, Vn);
+   iV = rwish(f0+ns, Vn)
 
    # tmp = crossprod(Tr, iQ)
    # R = chol(iUGamma + kronecker(iV, tmp %*% Tr))

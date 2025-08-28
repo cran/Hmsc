@@ -5,14 +5,14 @@
 #' @importFrom stats rnorm
 #' @importFrom Matrix bdiag Diagonal sparseMatrix
 #'
-updateBetaLambda = function(Y,Z,Gamma,iV,iSigma,Eta,Psi,Delta,rho, iQ, X,Tr,Pi,dfPi,C,rL){
+updateBetaLambda = function(Y,Z,Gamma,iV,iSigma,Eta,Psi,Delta,rho, iQ, Loff,X,Tr,Pi,dfPi,C,rL){
    ny = nrow(Z)
    ns = ncol(Z)
    nc = nrow(Gamma)
    nt = ncol(Tr)
    nr = ncol(Pi)
 
-   S = Z
+   if(is.null(Loff)) S = Z else S = Z - Loff
    Lambda = vector("list", nr)
    if(nr > 0){
       EtaFull = vector("list", nr)
@@ -136,7 +136,7 @@ updateBetaLambda = function(Y,Z,Gamma,iV,iSigma,Eta,Psi,Delta,rho, iQ, X,Tr,Pi,d
             ind1 = rep(rep(1:ns,each=nc+nfSum)+ns*rep(0:(nc+nfSum-1),ns), nc+nfSum)
             ind2 = rep(1:((nc+nfSum)*ns), each=nc+nfSum)
             mat = sparseMatrix(ind1, ind2, x=as.vector(tmpMat))
-            RiU = chol(as.matrix(mat) + P)
+            RiU = chol(as.matrix(mat + P))
          }
       )
       # U = chol2inv(RiU)
